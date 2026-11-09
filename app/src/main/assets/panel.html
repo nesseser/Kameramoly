@@ -3,124 +3,1093 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
 <title>Güvenlik Kamerası</title>
 <style>
-  :root { --bg:#0d1117; --card:#161b22; --line:#30363d; --txt:#e6edf3; --mut:#8b949e; --acc:#2f81f7; --ok:#3fb950; --warn:#d29922; }
+  :root {
+    --bg:#0b0f14; --card:#141a21; --card2:#1a212a; --line:#2a333d; --txt:#e6edf3; --mut:#8b949e;
+    --acc:#2f81f7; --acc2:#1f6feb; --ok:#3fb950; --warn:#d29922; --bad:#f85149;
+  }
   * { box-sizing:border-box; }
-  body { margin:0; font-family:system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--txt); }
-  .wrap { max-width:900px; margin:0 auto; padding:16px; }
-  h1 { font-size:20px; margin:8px 0 16px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
-  button { background:var(--acc); color:#fff; border:0; border-radius:8px; padding:10px 14px; font-size:15px; cursor:pointer; }
+  html, body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; font-size:15px; }
+  a { color:#58a6ff; }
+  .wrap { max-width:1180px; margin:0 auto; padding:16px; }
+  h1 { font-size:21px; margin:0; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  h2 { font-size:16px; margin:0 0 12px; display:flex; align-items:center; gap:8px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  .narrow { max-width:440px; margin:8vh auto 0; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:14px; margin-top:14px; }
+  .wide { grid-column:1/-1; }
+  button { background:var(--acc); color:#fff; border:0; border-radius:9px; padding:9px 14px; font-size:14px; cursor:pointer; font-family:inherit; }
+  button:hover { background:var(--acc2); }
+  button:disabled { opacity:.5; cursor:default; }
   button.ghost { background:transparent; border:1px solid var(--line); color:var(--txt); }
-  button.warn { background:var(--warn); color:#000; }
-  input { background:#0d1117; border:1px solid var(--line); color:var(--txt); border-radius:8px; padding:10px; font-size:16px; width:100%; }
-  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  .row > * { flex:0 0 auto; }
-  label { font-size:14px; color:var(--mut); }
-  #view { width:100%; border-radius:10px; background:#000; display:block; }
-  .pill { font-size:12px; padding:3px 9px; border-radius:20px; border:1px solid var(--line); color:var(--mut); }
-  .pill.on { color:var(--ok); border-color:var(--ok); }
-  .pill.mv { color:var(--warn); border-color:var(--warn); }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; }
-  .grid a { display:block; }
-  .grid img { width:100%; border-radius:8px; border:1px solid var(--line); }
-  .hide { display:none; }
-  .mut { color:var(--mut); font-size:13px; }
-  .slider { width:200px; }
+  button.ghost:hover { background:var(--card2); }
+  button.danger { background:transparent; border:1px solid var(--bad); color:var(--bad); }
+  button.small { padding:5px 10px; font-size:13px; }
+  input[type=text], input[type=password], input:not([type]), select {
+    background:#0b0f14; border:1px solid var(--line); color:var(--txt); border-radius:9px; padding:9px 10px; font-size:15px; font-family:inherit; min-width:0;
+  }
+  input:focus, select:focus { outline:2px solid var(--acc); outline-offset:-1px; }
+  input[type=range] { width:100%; accent-color:var(--acc); }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .row > input[type=text], .row > input[type=password], .row > input:not([type]) { flex:1 1 160px; }
+  .field { margin:10px 0; }
+  .field > .lbl { display:flex; justify-content:space-between; font-size:13px; color:var(--mut); margin-bottom:4px; }
+  .field > .lbl b { color:var(--txt); font-weight:600; }
+  .mut { color:var(--mut); font-size:13px; line-height:1.45; }
+  .center { text-align:center; }
+  .hide { display:none !important; }
+  .pill { font-size:12px; padding:3px 9px; border-radius:20px; border:1px solid var(--line); color:var(--mut); white-space:nowrap; font-weight:500; }
+  .pill.ok { color:var(--ok); border-color:var(--ok); }
+  .pill.warn { color:var(--warn); border-color:var(--warn); }
+  .pill.bad { color:var(--bad); border-color:var(--bad); }
+  .note { border-radius:10px; padding:10px 12px; font-size:13.5px; line-height:1.45; margin:10px 0; }
+  .note.warn { background:rgba(210,153,34,.12); border:1px solid rgba(210,153,34,.5); }
+  .note.ok { background:rgba(63,185,80,.10); border:1px solid rgba(63,185,80,.45); }
+  .note.info { background:rgba(47,129,247,.10); border:1px solid rgba(47,129,247,.45); }
+  .top { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  /* Anahtar (switch) */
+  .sw { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 0; cursor:pointer; font-size:14px; }
+  .sw small { display:block; color:var(--mut); font-size:12.5px; margin-top:2px; line-height:1.35; }
+  .sw input { display:none; }
+  .sw .t { flex:0 0 42px; height:24px; border-radius:12px; background:#30363d; position:relative; transition:.15s; }
+  .sw .t::after { content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition:.15s; }
+  .sw input:checked + .t { background:var(--ok); }
+  .sw input:checked + .t::after { left:21px; }
+  /* Sahne */
+  .stage { position:relative; background:#000; border-radius:10px; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:200px; touch-action:none; user-select:none; cursor:grab; }
+  .stage.dragging { cursor:grabbing; }
+  .stage canvas, .stage img { display:block; max-width:100%; }
+  .stage img.css { transform-origin:0 0; }
+  .stageMsg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--mut); font-size:15px; pointer-events:none; text-align:center; padding:20px; }
+  .badge { position:absolute; top:10px; right:10px; background:rgba(0,0,0,.6); border-radius:8px; padding:3px 8px; font-size:12px; }
+  .badgeL { left:10px; right:auto; }
+  .stage:fullscreen { border-radius:0; width:100vw; height:100vh; }
+  .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+  .toolbar .grow { flex:1; }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:13.5px; }
+  .kv span:nth-child(odd) { color:var(--mut); }
+  .mono { font-family:ui-monospace,Consolas,monospace; font-size:12px; word-break:break-all; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  td, th { text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--mut); font-weight:500; }
+  .histBox { max-height:260px; overflow:auto; margin-top:8px; }
+  .ev-bad { color:var(--bad); } .ev-ok { color:var(--ok); } .ev-warn { color:var(--warn); }
+  .cams { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; margin-top:12px; }
+  .tile { background:var(--card2); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .tile .img { position:relative; background:#000; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; }
+  .tile img { width:100%; height:100%; object-fit:contain; display:block; }
+  .tile .img .stageMsg { font-size:13px; }
+  .tile .info { padding:8px 10px; display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; }
+  .tile .name { font-weight:600; font-size:14px; }
+  ol.steps { margin:6px 0 10px 18px; padding:0; font-size:13.5px; line-height:1.55; color:#c9d1d9; }
+  .spin { width:18px; height:18px; border:3px solid var(--line); border-top-color:var(--acc); border-radius:50%; animation:sp 0.9s linear infinite; display:inline-block; vertical-align:middle; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+  .qr { background:#fff; border-radius:10px; padding:6px; width:180px; height:180px; display:block; }
+  .flash { animation:fl 1s ease-in-out 3; }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#2d1a1a; border:1px solid var(--bad); color:#ffd7d5; padding:10px 16px; border-radius:10px; z-index:10; max-width:90vw; font-size:14px; }
+  @keyframes fl { 50% { box-shadow:0 0 0 3px var(--warn); } }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- Giriş -->
-  <div id="login" class="card">
-    <h1>Güvenlik Kamerası</h1>
-    <p class="mut">Devam etmek için PIN gir.</p>
-    <div class="row">
-      <input id="pin" type="password" inputmode="numeric" placeholder="PIN" style="max-width:160px" autocomplete="off">
-      <button onclick="login()">Giriş</button>
+  <!-- ================= GİRİŞ ================= -->
+  <section id="login" class="card narrow hide">
+    <h1>🔒 Güvenlik Kamerası</h1>
+    <div id="loginInsecure" class="note warn hide">
+      Şifresiz bağlantıdasın. PIN'in ağda okunabilir.
+      <a id="loginHttpsLink" href="#">Şifreli (https) adresi aç</a>.
+    </div>
+    <p class="mut">Devam etmek için PIN'i gir.</p>
+    <form id="loginForm" class="row" autocomplete="off">
+      <input id="pin" type="password" inputmode="numeric" placeholder="PIN" autocomplete="off" maxlength="12">
+      <button id="loginBtn" type="submit">Giriş</button>
+    </form>
+    <div id="waitBox" class="note info hide">
+      <div class="row"><span class="spin"></span> <b>Telefonda onay bekleniyor…</b> <span id="waitSec" class="pill"></span></div>
+      <p class="mut" style="margin:8px 0 0">
+        Bu bilgisayar ilk kez bağlanıyor. Kamera telefonunda çıkan
+        <b>"Yeni cihaz bağlanmak istiyor"</b> bildirimine dokun, uygulama PIN'ini gir ve <b>İzin ver</b>'e bas.
+        Bildirim görünmüyorsa uygulamayı aç; sarı uyarıya dokun.
+      </p>
+      <button id="waitCancel" class="ghost small" type="button" style="margin-top:8px">Vazgeç</button>
     </div>
     <p id="loginMsg" class="mut"></p>
-  </div>
+  </section>
 
-  <!-- Panel -->
-  <div id="panel" class="hide">
-    <h1>Canlı Görüntü
-      <span id="pOn" class="pill">bağlanıyor…</span>
-      <span id="pMv" class="pill">hareket yok</span>
-    </h1>
-
-    <div class="card">
-      <img id="view" alt="canlı görüntü">
+  <!-- ================= PANEL ================= -->
+  <main id="panel" class="hide">
+    <div class="top">
+      <h1><span id="camTitle">Kamera</span>
+        <span id="pOn" class="pill">bağlanıyor…</span>
+        <span id="pMv" class="pill">hareket yok</span>
+        <span id="pViewers" class="pill">—</span>
+        <span id="pSec" class="pill">—</span>
+      </h1>
+      <div class="row">
+        <button id="logoutBtn" class="ghost small">Çıkış</button>
+      </div>
+    </div>
+    <div id="secWarn" class="note warn hide">
+      ⚠ Şifresiz (http) bağlantıdasın: görüntü ve oturum ağda okunabilir.
+      <a id="secHttpsLink" href="#">Şifreli adrese geç</a> ve Güvenlik bölümünden <b>Yalnızca HTTPS</b>'i aç.
     </div>
 
     <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div class="row">
-          <label>Hareket hassasiyeti</label>
-          <input class="slider" id="sens" type="range" min="1" max="100" oninput="sensLbl.textContent=this.value" onchange="setConfig({sensitivity:+this.value})">
-          <span id="sensLbl" class="pill">60</span>
+      <div id="stage" class="stage" tabindex="0" aria-label="Canlı görüntü">
+        <canvas id="gl" class="hide"></canvas>
+        <img id="view" alt="canlı görüntü" draggable="false">
+        <div id="stageMsg" class="stageMsg">Görüntü bekleniyor…</div>
+        <div id="zoomBadge" class="badge hide">1.0x</div>
+        <div id="modeBadge" class="badge badgeL hide"></div>
+      </div>
+      <div class="toolbar">
+        <button id="fsBtn" class="ghost small">⛶ Tam ekran</button>
+        <button id="resetViewBtn" class="ghost small">Görünümü sıfırla</button>
+        <span class="mut grow">Fare tekerleğiyle yakınlaştır, sürükleyerek gez, çift tıkla sıfırla. Klavye: + − 0 F</span>
+      </div>
+    </div>
+
+    <div class="grid">
+
+      <!-- ---------- Kamera ---------- -->
+      <section class="card">
+        <h2>📷 Kamera</h2>
+        <div class="field">
+          <div class="lbl"><span>Kamera adı</span></div>
+          <div class="row"><input id="camName" maxlength="32"><button id="saveName" class="ghost small">Kaydet</button></div>
         </div>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <button id="bCam" class="ghost" onclick="toggleCam()">Kamera: arka</button>
-        <button id="bTorch" class="ghost" onclick="toggleTorch()">Fener: kapalı</button>
-      </div>
-      <p class="mut">Bu uygulama görüntü kaydetmez; yalnızca canlı izleme sağlar.</p>
-    </div>
-  </div>
+        <div class="field">
+          <div class="lbl"><span>Çözünürlük</span></div>
+          <select id="resolution" style="width:100%">
+            <option value="480">480p — en az pil</option>
+            <option value="720">720p — önerilen</option>
+            <option value="1080">1080p — en net (daha çok pil)</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="lbl"><span>Görüntü kalitesi (sıkıştırma)</span><b id="qualityLbl">80</b></div>
+          <input id="quality" type="range" min="30" max="95" step="5">
+        </div>
+        <div class="field" id="zoomField">
+          <div class="lbl"><span>Kamera zoom'u (telefonda, gerçek ayrıntı)</span><b id="zoomLbl">1.0x</b></div>
+          <input id="camZoom" type="range" min="1" max="4" step="0.1">
+        </div>
+        <div class="field" id="expField">
+          <div class="lbl"><span>Pozlama (parlaklık, telefonda)</span><b id="expLbl">0</b></div>
+          <input id="exposure" type="range" min="-6" max="6" step="1">
+        </div>
+        <div class="field">
+          <div class="lbl"><span>Döndür (telefon yan duruyorsa)</span></div>
+          <select id="rotate" style="width:100%">
+            <option value="0">0°</option><option value="90">90° sağa</option>
+            <option value="180">180°</option><option value="270">90° sola</option>
+          </select>
+        </div>
+        <label class="sw"><span>Düşük ışık modu<small>Karanlıkta daha parlak görüntü (daha uzun pozlama, biraz daha az akıcı).</small></span>
+          <input type="checkbox" id="lowLight"><span class="t"></span></label>
+        <div class="row" style="margin-top:6px">
+          <button id="camBtn" class="ghost">Kamera: arka</button>
+          <button id="torchBtn" class="ghost">Fener: kapalı</button>
+        </div>
+        <div class="field">
+          <div class="lbl"><span>Hareket hassasiyeti</span><b id="sensLbl">60</b></div>
+          <input id="sens" type="range" min="1" max="100">
+        </div>
+        <label class="sw"><span>Derin pil tasarrufu<small>Kimse izlemezken ve bildirim kapalıyken kamera tamamen kapanır. Açılış 1-2 sn sürer. Görüntü gelmezse kapat (bazı Xiaomi'lerde arka planda kamera açılamayabilir).</small></span>
+          <input type="checkbox" id="deepSave"><span class="t"></span></label>
+      </section>
 
+      <!-- ---------- Görüntü iyileştirme ---------- -->
+      <section class="card">
+        <h2>✨ Görüntü iyileştirme <span id="enhMode" class="pill">—</span></h2>
+        <p class="mut">
+          DLSS, Nvidia ekran kartlarındaki özel yapay zekâ donanımıyla çalışır; telefondan gelen canlı
+          görüntüde kullanılamaz. Bunun yerine AMD'nin açık kaynak <b>FidelityFX CAS</b> (FSR'nin
+          netleştirme katmanı) yöntemi bilgisayarının ekran kartında uygulanır: kenarları akıllıca
+          keskinleştirir, düz alanlardaki gürültüyü büyütmez. Telefonun pilini etkilemez.
+        </p>
+        <div class="field">
+          <div class="lbl"><span>Netleştirme (CAS)</span><b id="sharpLbl">0</b></div>
+          <input id="sharp" type="range" min="0" max="100">
+        </div>
+        <div class="field">
+          <div class="lbl"><span>Gölgeleri aç (gece görüşü)</span><b id="shadowLbl">0</b></div>
+          <input id="shadow" type="range" min="0" max="100">
+        </div>
+        <div class="field">
+          <div class="lbl"><span>Parlaklık</span><b id="brightLbl">0</b></div>
+          <input id="bright" type="range" min="-50" max="50">
+        </div>
+        <div class="field">
+          <div class="lbl"><span>Kontrast</span><b id="contrastLbl">100%</b></div>
+          <input id="contrast" type="range" min="50" max="200">
+        </div>
+        <div class="field">
+          <div class="lbl"><span>Renk doygunluğu</span><b id="satLbl">100%</b></div>
+          <input id="sat" type="range" min="0" max="200">
+        </div>
+        <div class="row">
+          <button id="enhPreset" class="ghost small">Önerilen (net)</button>
+          <button id="enhNight" class="ghost small">Gece</button>
+          <button id="enhReset" class="ghost small">Sıfırla</button>
+        </div>
+        <p class="mut">Gerçek ayrıntı için en etkilisi: çözünürlüğü 1080p, kaliteyi 85+ yapmak ve uzaktaki bir şeye bakarken <b>kamera zoom'unu</b> kullanmak.</p>
+      </section>
+
+      <!-- ---------- Hareket bildirimi ---------- -->
+      <section class="card">
+        <h2>🔔 Hareket bildirimi (Telegram)</h2>
+        <details id="tgHelp">
+          <summary class="mut" style="cursor:pointer">Kurulum adımları (bir kez, ~2 dakika)</summary>
+          <ol class="steps">
+            <li>Telegram'da <b>@BotFather</b>'ı aç, <b>/newbot</b> yaz, botuna bir ad ver.</li>
+            <li>BotFather sana <b>123456789:ABC...</b> gibi bir <b>token</b> verir. Aşağıya yapıştır, <b>Kaydet</b>.</li>
+            <li>Telegram'da kendi botunu aç, <b>Başlat</b>'a bas (veya "merhaba" yaz).</li>
+            <li><b>Chat ID'yi bul</b>'a bas, sonra <b>Test gönder</b>.</li>
+            <li><b>Hareket bildirimleri</b>'ni aç. Bitti!</li>
+          </ol>
+          <p class="mut">Not: Bildirim için telefonun internete (Wi-Fi) bağlı olması gerekir.</p>
+        </details>
+        <div class="field">
+          <div class="lbl"><span>Bot token</span><b id="tgTokenState"></b></div>
+          <input id="tgToken" type="password" placeholder="123456789:ABC..." autocomplete="off" style="width:100%">
+        </div>
+        <div class="field">
+          <div class="lbl"><span>Chat ID</span></div>
+          <div class="row"><input id="tgChat" placeholder="örn. 123456789" autocomplete="off"><button id="tgDetect" class="ghost small">Chat ID'yi bul</button></div>
+        </div>
+        <div class="row">
+          <button id="tgSave">Kaydet</button>
+          <button id="tgTest" class="ghost">Test gönder</button>
+          <button id="tgClear" class="danger small">Telegram ayarlarını sil</button>
+        </div>
+        <p id="tgMsg" class="mut"></p>
+        <label class="sw"><span>Hareket bildirimleri<small>Hareket olunca Telegram'a mesaj gelir (kimse izlemese bile).</small></span>
+          <input type="checkbox" id="tgOn"><span class="t"></span></label>
+        <label class="sw"><span>Bildirime fotoğraf ekle<small>Hareket anının tek bir karesi Telegram'a gönderilir. Kapalıyken sadece yazı gider, hiçbir görüntü telefondan çıkmaz.</small></span>
+          <input type="checkbox" id="tgPhoto"><span class="t"></span></label>
+        <label class="sw"><span>Güvenlik uyarıları<small>Yeni cihaz bağlanmak isterse veya yanlış PIN denenirse haber ver.</small></span>
+          <input type="checkbox" id="tgSec"><span class="t"></span></label>
+        <div class="field">
+          <div class="lbl"><span>İki bildirim arası en az</span></div>
+          <select id="tgCooldown" style="width:100%">
+            <option value="30">30 saniye</option><option value="60">1 dakika</option><option value="300">5 dakika</option>
+            <option value="900">15 dakika</option><option value="3600">1 saat</option>
+          </select>
+        </div>
+        <p id="tgLast" class="mut"></p>
+        <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+        <label class="sw"><span>Bu bilgisayarda sesli uyarı<small>Panel açıkken hareket olunca bip sesi.</small></span>
+          <input type="checkbox" id="beepOn"><span class="t"></span></label>
+      </section>
+
+      <!-- ---------- Güvenlik ---------- -->
+      <section class="card">
+        <h2>🛡️ Güvenlik</h2>
+        <div class="kv">
+          <span>Bağlantı</span><span id="kvConn">—</span>
+          <span>Yeni cihaz onayı</span><span id="kvGate">—</span>
+          <span>Açık oturumlar</span><span id="kvSessions">—</span>
+          <span>Telefonun adresi</span><span id="kvIp" class="mono">—</span>
+        </div>
+        <label class="sw"><span>Yalnızca HTTPS<small>Şifresiz (http) bağlantılar şifreli adrese yönlendirilir. Açık kalması önerilir.</small></span>
+          <input type="checkbox" id="httpsOnly"><span class="t"></span></label>
+        <div class="field">
+          <div class="lbl"><span>Sertifika parmak izi (SHA-256)</span></div>
+          <div id="fp" class="mono">—</div>
+          <p class="mut">Tarayıcıda adres çubuğundaki simge > sertifika ayrıntılarındaki SHA-256 ile aynı olmalı; telefondaki uygulamada da görünür.</p>
+        </div>
+        <div class="row" style="align-items:flex-start;gap:14px">
+          <img id="qrImg" class="qr" alt="QR kod">
+          <div class="mut" style="flex:1;min-width:150px">
+            Başka bir telefonla okut, paneli açsın.<br><br>
+            <button id="qrToggle" class="ghost small">Şifresiz QR göster</button>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button id="histBtn" class="ghost">Bağlantı geçmişini göster</button>
+          <button id="revokeBtn" class="danger">Tüm oturumları kapat</button>
+        </div>
+        <div id="histBox" class="histBox hide"></div>
+        <p class="mut">PIN değiştirme, cihaz onayları ve onaylı cihazları kaldırma yalnızca telefondaki uygulamadan yapılabilir (biri paneline girse bile bunları değiştiremesin diye).</p>
+      </section>
+
+      <!-- ---------- Diğer kameralar ---------- -->
+      <section class="card wide">
+        <h2>🧩 Diğer kameralar</h2>
+        <p class="mut">Evde başka eski telefonlar varsa her birine bu uygulamayı kur ve başlat. Buraya adresini ekle; hepsini tek ekranda izle.
+          Her kamera bu bilgisayarı <b>kendi telefonunda</b> bir kez onaylamanı ister.</p>
+        <form id="addCamForm" class="row" autocomplete="off">
+          <input id="addHost" placeholder="Telefonun IP adresi (örn. 192.168.1.35)">
+          <input id="addPin" type="password" inputmode="numeric" placeholder="O kameranın PIN'i" style="max-width:170px">
+          <button id="addCamBtn" type="submit">Ekle</button>
+        </form>
+        <p id="addMsg" class="mut"></p>
+        <div id="cams" class="cams"></div>
+      </section>
+    </div>
+
+    <p class="mut center" style="margin-top:18px">Bu uygulama görüntü kaydetmez; yalnızca canlı izleme sağlar.</p>
+  </main>
 </div>
 
-<script>
-const $ = s => document.querySelector(s);
-let st = {};
+<div id="toast" class="toast hide" role="alert"></div>
 
-async function login() {
-  const pin = $('#pin').value.trim();
-  $('#loginMsg').textContent = 'Kontrol ediliyor…';
-  try {
-    const r = await fetch('/auth', { method:'POST', body: JSON.stringify({pin}) });
-    const j = await r.json();
-    if (j.ok) { openPanel(); }
-    else if (j.locked) { $('#loginMsg').textContent = 'Çok fazla yanlış deneme. ' + j.saniye + ' sn bekle.'; }
-    else { $('#loginMsg').textContent = 'Yanlış PIN. Kalan deneme: ' + (j.kalan ?? '?'); }
-  } catch(e) { $('#loginMsg').textContent = 'Bağlantı hatası.'; }
+<!-- WebGL olmayan tarayıcılar için yedek netleştirme filtresi -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="sharpenSvg" color-interpolation-filters="sRGB">
+    <feConvolveMatrix id="sharpenKernel" order="3" kernelMatrix="0 0 0 0 1 0 0 0 0" preserveAlpha="true" edgeMode="duplicate"/>
+  </filter>
+</svg>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+
+// ---------------- Cihaz kimliği ----------------
+function deviceId() {
+  let id = store.get('kamera_cihaz', null);
+  if (!/^[a-f0-9]{32}$/.test(id || '')) {
+    const b = new Uint8Array(16); crypto.getRandomValues(b);
+    id = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+    store.set('kamera_cihaz', id);
+  }
+  return id;
+}
+function deviceName() {
+  const ua = navigator.userAgent;
+  const os = /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iPhone/iPad'
+    : /Mac OS X/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : 'Bilinmeyen sistem';
+  const br = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox'
+    : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Tarayıcı';
+  return os + ' • ' + br;
 }
 
-$('#pin').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+// ---------------- Sunucu çağrıları ----------------
+class AuthError extends Error {}
+async function api(path, body) {
+  const opt = body === undefined ? {} : { method: 'POST', body: JSON.stringify(body) };
+  opt.cache = 'no-store';
+  const r = await fetch(path, opt);
+  let j = null;
+  try { j = await r.json(); } catch (e) {}
+  if (r.status === 401) throw new AuthError('oturum yok');
+  if (r.status === 403 && j && j.httpsOnly) { goHttps(); throw new Error('https'); }
+  if (!r.ok && !(j && j.msg)) throw new Error('HTTP ' + r.status);
+  return j || {};
+}
+function httpsUrl() { return 'https://' + location.hostname + ':' + ((st && st.tlsPort) || 8443) + '/'; }
+function goHttps() { location.href = httpsUrl(); }
 
+// ---------------- Giriş ----------------
+let st = {}, pollTimer = null, waitAbort = false;
+
+async function start() {
+  if (location.protocol !== 'https:') {
+    $('#loginInsecure').classList.remove('hide');
+    $('#loginHttpsLink').href = httpsUrl();
+  }
+  try { st = await api('/status'); openPanel(); }
+  catch (e) { showLogin(); }
+}
+
+function showLogin(msg) {
+  stopPanel();
+  $('#panel').classList.add('hide');
+  $('#login').classList.remove('hide');
+  $('#waitBox').classList.add('hide');
+  $('#loginMsg').textContent = msg || '';
+  setTimeout(() => $('#pin').focus(), 50);
+}
+
+$('#loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const pin = $('#pin').value.trim();
+  if (!pin) return;
+  $('#loginBtn').disabled = true;
+  $('#loginMsg').textContent = 'Kontrol ediliyor…';
+  try {
+    const r = await fetch('/auth', { method: 'POST', cache: 'no-store', body: JSON.stringify({ pin, dev: deviceId(), name: deviceName() }) });
+    const j = await r.json();
+    $('#pin').value = '';
+    if (j.ok) { $('#loginMsg').textContent = ''; st = await api('/status'); openPanel(); }
+    else if (j.pending) { await waitApproval('', j.req, j.saniye); }
+    else if (j.locked) { $('#loginMsg').textContent = (j.global ? 'Çok fazla yanlış deneme yapıldı. Panel kilitlendi: ' : 'Çok fazla yanlış deneme. ') + j.saniye + ' sn bekle.'; }
+    else if (j.httpsOnly) { goHttps(); }
+    else if (j.msg) { $('#loginMsg').textContent = j.msg; }
+    else { $('#loginMsg').textContent = 'Yanlış PIN. Kalan deneme: ' + (j.kalan ?? '?'); }
+  } catch (err) {
+    $('#loginMsg').textContent = 'Bağlantı hatası. Telefon ve bilgisayar aynı Wi-Fi\'de mi, kamera açık mı?';
+  } finally { $('#loginBtn').disabled = false; }
+});
+
+async function waitApproval(base, req, sec) {
+  waitAbort = false;
+  $('#loginMsg').textContent = '';
+  $('#waitBox').classList.remove('hide');
+  let left = sec || 180;
+  $('#waitSec').textContent = left + ' sn';
+  while (!waitAbort) {
+    await sleep(2000);
+    if (waitAbort) break;
+    let j;
+    try { j = await (await fetch(base + '/auth/wait?req=' + encodeURIComponent(req), { cache: 'no-store' })).json(); }
+    catch (e) { continue; }
+    if (j.state === 'pending') { $('#waitSec').textContent = j.saniye + ' sn'; continue; }
+    $('#waitBox').classList.add('hide');
+    if (j.state === 'approved' && j.ok) { st = await api('/status'); openPanel(); return; }
+    $('#loginMsg').textContent = j.state === 'denied' ? 'Telefondan REDDEDİLDİ.' : 'Onay süresi doldu. Tekrar giriş yap.';
+    return;
+  }
+  $('#waitBox').classList.add('hide');
+}
+$('#waitCancel').onclick = () => { waitAbort = true; $('#loginMsg').textContent = 'Vazgeçildi.'; };
+
+// ---------------- Panel ----------------
 function openPanel() {
   $('#login').classList.add('hide');
   $('#panel').classList.remove('hide');
-  $('#view').src = '/stream?t=' + Date.now(); // cookie ile yetkili
-  refresh();
-  setInterval(refresh, 2000);
+  render(st);
+  connectStream();
+  clearInterval(pollTimer);
+  pollTimer = setInterval(refresh, 2000);
+  Viewer.start();
+  Cams.start();
+  const insecure = location.protocol !== 'https:';
+  $('#secWarn').classList.toggle('hide', !insecure);
+  $('#secHttpsLink').href = httpsUrl();
+}
+function stopPanel() {
+  clearInterval(pollTimer); pollTimer = null;
+  const v = $('#view'); v.removeAttribute('src');
+  Viewer.stop();
+  Cams.stop();
 }
 
+let prevMotion = false;
 async function refresh() {
   try {
-    const j = await (await fetch('/status')).json();
-    st = j;
-    $('#pOn').textContent = 'AÇIK ' + j.w + 'x' + j.h;
-    $('#pOn').className = 'pill on';
-    $('#pMv').textContent = j.motion ? 'HAREKET' : 'hareket yok';
-    $('#pMv').className = 'pill ' + (j.motion ? 'mv' : '');
-    $('#sens').value = j.sensitivity; $('#sensLbl').textContent = j.sensitivity;
-    $('#bCam').textContent = 'Kamera: ' + (j.front ? 'ön' : 'arka');
-    $('#bTorch').textContent = 'Fener: ' + (j.torch ? 'açık' : 'kapalı');
-  } catch(e) {
-    $('#pOn').textContent = 'bağlantı yok'; $('#pOn').className = 'pill';
+    st = await api('/status');
+    render(st);
+  } catch (e) {
+    if (e instanceof AuthError) { showLogin('Oturum kapandı (zaman aşımı, PIN değişti ya da cihaz kaldırıldı). Tekrar giriş yap.'); return; }
+    $('#pOn').textContent = 'bağlantı yok'; $('#pOn').className = 'pill bad';
   }
 }
 
-async function setConfig(obj) {
-  await fetch('/config', { method:'POST', body: JSON.stringify(obj) });
-  refresh();
+function setIfIdle(el, v, prop = 'value') {
+  if (document.activeElement === el) return;
+  if (el[prop] !== v) el[prop] = v;
 }
-function toggleCam() { setConfig({front: !st.front}); }
-function toggleTorch() { setConfig({torch: !st.torch}); }
+
+function render(j) {
+  if (!j || !j.on) return;
+  $('#camTitle').textContent = j.name || 'Kamera';
+  document.title = (j.motion ? '⚠ HAREKET — ' : '') + (j.name || 'Kamera') + ' — Güvenlik Kamerası';
+  $('#pOn').textContent = j.camActive ? ('CANLI ' + (j.w ? j.w + '×' + j.h : '')) : (j.deepSave ? 'uykuda (tasarruf)' : 'kamera açılıyor');
+  $('#pOn').className = 'pill ' + (j.camActive ? 'ok' : 'warn');
+  $('#pMv').textContent = j.motion ? 'HAREKET' : 'hareket yok';
+  $('#pMv').className = 'pill ' + (j.motion ? 'warn' : '');
+  $('#pViewers').textContent = j.viewers + ' izleyen';
+  const secure = location.protocol === 'https:';
+  $('#pSec').textContent = secure ? '🔒 şifreli' : '⚠ şifresiz';
+  $('#pSec').className = 'pill ' + (secure ? 'ok' : 'warn');
+
+  if (j.motion && !prevMotion) onMotion();
+  prevMotion = !!j.motion;
+
+  setIfIdle($('#camName'), j.name);
+  setIfIdle($('#resolution'), j.resolution);
+  setIfIdle($('#quality'), String(j.quality)); $('#qualityLbl').textContent = j.quality;
+  const zMax = Math.max(1, Math.min(j.zoomMax || 1, 10));
+  $('#zoomField').classList.toggle('hide', zMax <= 1.01);
+  $('#camZoom').min = Math.max(1, j.zoomMin || 1); $('#camZoom').max = zMax;
+  if (document.activeElement !== $('#camZoom')) { $('#camZoom').value = Math.min(j.zoom, zMax); $('#zoomLbl').textContent = Number(Math.min(j.zoom, zMax)).toFixed(1) + 'x'; }
+  $('#expField').classList.toggle('hide', j.expMin === 0 && j.expMax === 0);
+  $('#exposure').min = j.expMin; $('#exposure').max = j.expMax;
+  if (document.activeElement !== $('#exposure')) { $('#exposure').value = j.exposure; $('#expLbl').textContent = (j.exposure > 0 ? '+' : '') + j.exposure; }
+  setIfIdle($('#rotate'), String(j.rotate));
+  setIfIdle($('#lowLight'), j.lowLight, 'checked');
+  setIfIdle($('#deepSave'), j.deepSave, 'checked');
+  $('#camBtn').textContent = 'Kamera: ' + (j.front ? 'ön' : 'arka');
+  $('#torchBtn').textContent = 'Fener: ' + (j.torch ? 'açık' : 'kapalı');
+  $('#torchBtn').classList.toggle('hide', !j.hasTorch);
+  setIfIdle($('#sens'), String(j.sensitivity)); if (document.activeElement !== $('#sens')) $('#sensLbl').textContent = j.sensitivity;
+
+  $('#tgTokenState').textContent = j.tgTokenSet ? '✓ kayıtlı' : 'kayıtlı değil';
+  $('#tgToken').placeholder = j.tgTokenSet ? '•••••••• (kayıtlı; değiştirmek için yenisini yapıştır)' : '123456789:ABC...';
+  setIfIdle($('#tgChat'), j.tgChat || '');
+  setIfIdle($('#tgOn'), j.tgOn, 'checked');
+  setIfIdle($('#tgPhoto'), j.tgPhoto, 'checked');
+  setIfIdle($('#tgSec'), j.tgSec, 'checked');
+  setIfIdle($('#tgCooldown'), String(j.tgCooldown));
+  $('#tgLast').textContent = j.tgLast || '';
+
+  $('#kvConn').innerHTML = secure ? '<span class="ev-ok">🔒 Şifreli (HTTPS)</span>' : '<span class="ev-warn">⚠ Şifresiz (HTTP)</span>';
+  $('#kvGate').innerHTML = j.deviceGate ? '<span class="ev-ok">AÇIK ✓</span> <span class="mut">(telefondan değiştirilir)</span>' : '<span class="ev-bad">KAPALI</span> <span class="mut">— telefondan açman önerilir</span>';
+  $('#kvSessions').textContent = j.sessions;
+  $('#kvIp').textContent = j.ip + '  (https:' + j.tlsPort + ', http:' + j.httpPort + ')';
+  setIfIdle($('#httpsOnly'), j.httpsOnly, 'checked');
+  $('#fp').textContent = j.fp || 'hazırlanıyor…';
+}
+
+let toastT = null;
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.remove('hide'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.add('hide'), 5000); }
+async function setConfig(obj) {
+  try {
+    const j = await api('/config', obj);
+    if (j.msg && !j.on) { toast(j.msg); return j; }
+    st = j; render(j); return j;
+  } catch (e) {
+    if (e instanceof AuthError) showLogin('Oturum kapandı. Tekrar giriş yap.');
+  }
+}
+
+// --- Kamera ayarları ---
+$('#saveName').onclick = () => { const n = $('#camName').value.trim(); if (n) setConfig({ name: n }); $('#camName').blur(); };
+$('#camName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveName').click(); });
+$('#resolution').onchange = e => setConfig({ resolution: e.target.value });
+$('#quality').oninput = e => $('#qualityLbl').textContent = e.target.value;
+$('#quality').onchange = e => setConfig({ quality: +e.target.value });
+$('#camZoom').oninput = e => { $('#zoomLbl').textContent = Number(e.target.value).toFixed(1) + 'x'; zoomSend(+e.target.value); };
+let zoomT = null; function zoomSend(v) { clearTimeout(zoomT); zoomT = setTimeout(() => setConfig({ zoom: v }), 120); }
+$('#exposure').oninput = e => $('#expLbl').textContent = (e.target.value > 0 ? '+' : '') + e.target.value;
+$('#exposure').onchange = e => setConfig({ exposure: +e.target.value });
+$('#rotate').onchange = e => setConfig({ rotate: +e.target.value });
+$('#lowLight').onchange = e => setConfig({ lowLight: e.target.checked });
+$('#deepSave').onchange = e => setConfig({ deepSave: e.target.checked });
+$('#camBtn').onclick = () => setConfig({ front: !st.front });
+$('#torchBtn').onclick = () => setConfig({ torch: !st.torch });
+$('#sens').oninput = e => $('#sensLbl').textContent = e.target.value;
+$('#sens').onchange = e => setConfig({ sensitivity: +e.target.value });
+
+// --- Telegram ---
+function tgMsg(t, ok) { const m = $('#tgMsg'); m.textContent = t; m.className = ok === undefined ? 'mut' : (ok ? 'ev-ok' : 'ev-bad'); }
+$('#tgSave').onclick = async () => {
+  const body = {};
+  const tok = $('#tgToken').value.trim(), chat = $('#tgChat').value.trim();
+  if (tok) body.tgToken = tok;
+  if (chat) body.tgChat = chat;
+  if (!tok && !chat) { tgMsg('Kaydedilecek bir şey yok.'); return; }
+  const j = await setConfig(body);
+  if (j && j.on) { $('#tgToken').value = ''; tgMsg('Kaydedildi.', true); }
+  else if (j && j.msg) tgMsg(j.msg, false);
+};
+$('#tgDetect').onclick = async () => {
+  tgMsg('Telegram\'a soruluyor…');
+  try {
+    const j = await api('/telegram/detect', { tgToken: $('#tgToken').value.trim() });
+    if (j.ok) { $('#tgChat').value = j.chat; tgMsg('Bulundu: ' + (j.name ? j.name + ' — ' : '') + j.chat + '. Şimdi Kaydet\'e bas.', true); }
+    else tgMsg(j.msg || 'Bulunamadı.', false);
+  } catch (e) { tgMsg('İstek başarısız.', false); }
+};
+$('#tgTest').onclick = async () => {
+  tgMsg('Gönderiliyor…');
+  try {
+    const j = await api('/telegram/test', { tgToken: $('#tgToken').value.trim(), tgChat: $('#tgChat').value.trim() });
+    tgMsg(j.msg || (j.ok ? 'Gönderildi.' : 'Gönderilemedi.'), !!j.ok);
+  } catch (e) { tgMsg('İstek başarısız.', false); }
+};
+$('#tgClear').onclick = async () => {
+  if (!confirm('Telegram bot token ve Chat ID silinsin mi? Bildirimler kapanır.')) return;
+  await setConfig({ tgClear: true }); $('#tgToken').value = ''; $('#tgChat').value = ''; tgMsg('Silindi.');
+};
+$('#tgOn').onchange = async e => { const j = await setConfig({ tgOn: e.target.checked }); if (j && j.msg && !j.on) e.target.checked = false; };
+$('#tgPhoto').onchange = e => setConfig({ tgPhoto: e.target.checked });
+$('#tgSec').onchange = e => setConfig({ tgSec: e.target.checked });
+$('#tgCooldown').onchange = e => setConfig({ tgCooldown: +e.target.value });
+
+// --- Bu bilgisayarda sesli uyarı ---
+let audioCtx = null;
+$('#beepOn').checked = store.get('beep', false);
+$('#beepOn').onchange = e => {
+  store.set('beep', e.target.checked);
+  if (e.target.checked) { try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); beep(); } catch (x) {} }
+};
+function beep() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime;
+    [0, 0.22].forEach(d => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.frequency.value = 880; o.type = 'sine';
+      g.gain.setValueAtTime(0.0001, t + d); g.gain.exponentialRampToValueAtTime(0.25, t + d + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.18);
+      o.connect(g); g.connect(audioCtx.destination); o.start(t + d); o.stop(t + d + 0.2);
+    });
+  } catch (e) {}
+}
+let lastBeep = 0;
+function onMotion() {
+  const stage = $('#stage');
+  stage.classList.remove('flash'); void stage.offsetWidth; stage.classList.add('flash');
+  if ($('#beepOn').checked && Date.now() - lastBeep > 5000) { lastBeep = Date.now(); beep(); }
+}
+
+// --- Güvenlik ---
+$('#httpsOnly').onchange = async e => {
+  if (!e.target.checked && !confirm('Yalnızca HTTPS kapatılsın mı? Şifresiz bağlantılara izin verilir (önerilmez).')) { e.target.checked = true; return; }
+  await setConfig({ httpsOnly: e.target.checked });
+  if (e.target.checked && location.protocol !== 'https:') goHttps();
+};
+let qrHttps = true;
+function loadQr() { $('#qrImg').src = '/qr.png?s=' + (qrHttps ? 'https' : 'http') + '&_=' + Date.now(); $('#qrToggle').textContent = qrHttps ? 'Şifresiz QR göster' : 'Şifreli QR göster'; }
+$('#qrToggle').onclick = () => { qrHttps = !qrHttps; loadQr(); };
+$('#histBtn').onclick = async () => {
+  const box = $('#histBox');
+  try {
+    const list = await api('/history');
+    box.innerHTML = list.length ? '<table><tr><th>Zaman</th><th>Adres</th><th>Olay</th></tr>' + list.map(e => {
+      const cls = /Hatalı|Kilit|reddedildi|REDDET/i.test(e.olay) ? 'ev-bad' : /onay bekleniyor/i.test(e.olay) ? 'ev-warn' : /Giriş|onaylandı/i.test(e.olay) ? 'ev-ok' : '';
+      return '<tr><td>' + esc(e.zaman) + '</td><td class="mono">' + esc(e.ip) + '</td><td class="' + cls + '">' + esc(e.olay) + '</td></tr>';
+    }).join('') + '</table>' : '<p class="mut">Henüz kayıt yok.</p>';
+    box.classList.remove('hide');
+    $('#histBtn').textContent = 'Geçmişi yenile';
+  } catch (e) { if (e instanceof AuthError) showLogin(); }
+};
+$('#revokeBtn').onclick = async () => {
+  if (!confirm('Bu bilgisayar dahil, panele bağlı HERKESİN oturumu kapatılsın mı? Herkes PIN ile yeniden girmek zorunda kalır.')) return;
+  try { await api('/sessions/revoke', {}); } catch (e) {}
+  showLogin('Tüm oturumlar kapatıldı.');
+};
+$('#logoutBtn').onclick = async () => { try { await api('/logout', {}); } catch (e) {} showLogin('Çıkış yapıldı.'); };
+
+// ---------------- Canlı görüntü ----------------
+let streamRetry = null;
+function connectStream() {
+  clearTimeout(streamRetry);
+  const v = $('#view');
+  v.onerror = () => {
+    $('#stageMsg').textContent = 'Bağlantı koptu, yeniden bağlanılıyor…';
+    $('#stageMsg').classList.remove('hide');
+    clearTimeout(streamRetry);
+    streamRetry = setTimeout(async () => {
+      try { await api('/status'); connectStream(); } catch (e) { if (e instanceof AuthError) showLogin('Oturum kapandı. Tekrar giriş yap.'); else connectStream(); }
+    }, 2500);
+  };
+  v.src = '/stream?_=' + Date.now();
+  loadQr();
+}
+
+/**
+ * Görüntüleyici: WebGL ile AMD FidelityFX CAS benzeri uyarlanır netleştirme, parlaklık,
+ * kontrast, doygunluk, gölge açma ve yakınlaştırma/kaydırma. WebGL yoksa CSS + SVG yedeği.
+ */
+const Viewer = (() => {
+  const stage = $('#stage'), canvas = $('#gl'), img = $('#view');
+  const enh = Object.assign({ sharp: 35, shadow: 0, bright: 0, contrast: 100, sat: 100 }, store.get('enh', {}));
+  const view = { z: 1, cx: 0.5, cy: 0.5 };
+  let gl = null, prog = null, tex = null, loc = {}, useGL = false, raf = 0, running = false, lastDraw = 0, dirty = true, texW = 0, texH = 0;
+
+  const VS = `attribute vec2 p; uniform vec4 v; varying vec2 uv;
+    void main(){ vec2 t = p * 0.5 + 0.5; uv = vec2(v.x + t.x * v.z, v.y + (1.0 - t.y) * v.w); gl_Position = vec4(p, 0.0, 1.0); }`;
+  const FS = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    #else
+    precision mediump float;
+    #endif
+    uniform sampler2D img; uniform vec2 texel; uniform float sharp, bright, contrast, sat, gam; varying vec2 uv;
+    vec3 S(float x, float y){ return texture2D(img, uv + vec2(x, y) * texel).rgb; }
+    void main(){
+      vec3 e = S(0.0, 0.0);
+      vec3 col = e;
+      if (sharp > 0.001) {
+        // AMD FidelityFX CAS: 3x3 komşulukta yumuşak min/maks, kontrasta göre uyarlanır ağırlık
+        vec3 a = S(-1.0,-1.0), b = S(0.0,-1.0), c = S(1.0,-1.0);
+        vec3 d = S(-1.0, 0.0), f = S(1.0, 0.0);
+        vec3 g = S(-1.0, 1.0), h = S(0.0, 1.0), i = S(1.0, 1.0);
+        vec3 mn = min(min(min(d, e), min(f, b)), h);
+        vec3 mn2 = min(mn, min(min(a, c), min(g, i)));
+        mn += mn2;
+        vec3 mx = max(max(max(d, e), max(f, b)), h);
+        vec3 mx2 = max(mx, max(max(a, c), max(g, i)));
+        mx += mx2;
+        vec3 amp = clamp(min(mn, 2.0 - mx) / max(mx, vec3(0.0001)), 0.0, 1.0);
+        amp = sqrt(amp);
+        float peak = -1.0 / mix(8.0, 5.0, sharp);
+        vec3 w = amp * peak;
+        vec3 rw = 1.0 / (1.0 + 4.0 * w);
+        vec3 o = clamp(((b + d + f + h) * w + e) * rw, 0.0, 1.0);
+        col = mix(e, o, clamp(sharp * 1.6, 0.0, 1.0));
+      }
+      col = pow(max(col, vec3(0.0)), vec3(gam));
+      col = (col - 0.5) * contrast + 0.5 + bright;
+      float l = dot(col, vec3(0.299, 0.587, 0.114));
+      col = mix(vec3(l), col, sat);
+      gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+    }`;
+
+  function initGL() {
+    try {
+      gl = canvas.getContext('webgl', { alpha: false, antialias: false, premultipliedAlpha: false, preserveDrawingBuffer: false })
+        || canvas.getContext('experimental-webgl');
+      if (!gl) return false;
+      const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+      prog = gl.createProgram();
+      gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
+      gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+      gl.useProgram(prog);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+      const pl = gl.getAttribLocation(prog, 'p');
+      gl.enableVertexAttribArray(pl);
+      gl.vertexAttribPointer(pl, 2, gl.FLOAT, false, 0, 0);
+      for (const n of ['v', 'texel', 'sharp', 'bright', 'contrast', 'sat', 'gam', 'img']) loc[n] = gl.getUniformLocation(prog, n);
+      tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.uniform1i(loc.img, 0);
+      canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); fallback('WebGL bağlamı kaybedildi'); });
+      return true;
+    } catch (e) {
+      console.warn('WebGL kullanılamıyor:', e);
+      gl = null;
+      return false;
+    }
+  }
+
+  function fallback(why) {
+    if (!useGL) return;
+    console.warn('Basit moda geçiliyor:', why);
+    useGL = false;
+    canvas.classList.add('hide');
+    img.classList.remove('hide');
+    applyCss();
+    setMode();
+  }
+
+  function setMode() {
+    $('#enhMode').textContent = useGL ? 'ekran kartı (WebGL)' : 'basit mod';
+    $('#enhMode').className = 'pill ' + (useGL ? 'ok' : 'warn');
+    $('#modeBadge').textContent = useGL ? 'CAS ' + Math.round(enh.sharp) : '';
+    $('#modeBadge').classList.toggle('hide', !useGL || enh.sharp === 0);
+  }
+
+  function visibleRect() {
+    const s = 1 / view.z;
+    let ox = Math.min(Math.max(view.cx - s / 2, 0), 1 - s), oy = Math.min(Math.max(view.cy - s / 2, 0), 1 - s);
+    view.cx = ox + s / 2; view.cy = oy + s / 2;
+    return { ox, oy, s };
+  }
+
+  // Görüntüyü sahneye en-boy oranını koruyarak sığdır.
+  function fit(iw, ih) {
+    const fs = document.fullscreenElement === stage;
+    const boxW = stage.clientWidth || 640;
+    const boxH = fs ? window.innerHeight : Math.max(240, window.innerHeight * 0.72);
+    const a = iw / ih;
+    let w = boxW, h = boxW / a;
+    if (h > boxH) { h = boxH; w = h * a; }
+    return { w: Math.round(w), h: Math.round(h) };
+  }
+
+  function applyCss() {
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    if (iw && ih) { const f = fit(iw, ih); img.style.width = f.w + 'px'; img.style.height = f.h + 'px'; }
+    const r = visibleRect();
+    img.classList.add('css');
+    img.style.transform = view.z > 1.001 ? `scale(${view.z}) translate(${-r.ox * 100}%, ${-r.oy * 100}%)` : '';
+    const parts = [];
+    if (enh.bright) parts.push(`brightness(${1 + enh.bright / 100})`);
+    if (enh.shadow) parts.push(`brightness(${1 + enh.shadow / 250})`);
+    if (enh.contrast !== 100) parts.push(`contrast(${enh.contrast / 100})`);
+    if (enh.sat !== 100) parts.push(`saturate(${enh.sat / 100})`);
+    if (enh.sharp > 0) {
+      const k = (enh.sharp / 100) * 0.9;
+      $('#sharpenKernel').setAttribute('kernelMatrix', `0 ${-k} 0 ${-k} ${1 + 4 * k} ${-k} 0 ${-k} 0`);
+      parts.push('url(#sharpenSvg)');
+    }
+    img.style.filter = parts.join(' ');
+  }
+
+  function draw() {
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    if (!iw || !ih) return false;
+    const f = fit(iw, ih);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const bw = Math.max(1, Math.round(f.w * dpr)), bh = Math.max(1, Math.round(f.h * dpr));
+    if (canvas.width !== bw || canvas.height !== bh) { canvas.width = bw; canvas.height = bh; }
+    canvas.style.width = f.w + 'px'; canvas.style.height = f.h + 'px';
+    gl.viewport(0, 0, bw, bh);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    try {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+    } catch (e) { fallback(e && e.name); return false; }
+    texW = iw; texH = ih;
+    const r = visibleRect();
+    gl.uniform4f(loc.v, r.ox, r.oy, r.s, r.s);
+    gl.uniform2f(loc.texel, 1 / iw, 1 / ih);
+    gl.uniform1f(loc.sharp, enh.sharp / 100);
+    gl.uniform1f(loc.bright, enh.bright / 200);
+    gl.uniform1f(loc.contrast, enh.contrast / 100);
+    gl.uniform1f(loc.sat, enh.sat / 100);
+    gl.uniform1f(loc.gam, 1 - enh.shadow / 200);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    return true;
+  }
+
+  function loop(t) {
+    if (!running) return;
+    raf = requestAnimationFrame(loop);
+    const has = img.naturalWidth > 0;
+    $('#stageMsg').classList.toggle('hide', has);
+    if (!has) return;
+    // Telefon en fazla ~10 kare/sn gönderir; 15 kare/sn çizmek yeterli (etkileşimde anında).
+    if (!dirty && t - lastDraw < 66) return;
+    lastDraw = t; dirty = false;
+    if (useGL) draw(); else applyCss();
+  }
+
+  function setZoom(z, px, py) {
+    const old = visibleRect();
+    const nz = Math.min(Math.max(z, 1), 8);
+    // İmlecin altındaki nokta yerinde kalsın
+    const u = old.ox + px * old.s, v = old.oy + py * old.s;
+    view.z = nz;
+    const s = 1 / nz;
+    view.cx = u - px * s + s / 2; view.cy = v - py * s + s / 2;
+    visibleRect();
+    $('#zoomBadge').textContent = nz.toFixed(1) + 'x';
+    $('#zoomBadge').classList.toggle('hide', nz <= 1.001);
+    dirty = true;
+  }
+  function reset() { view.z = 1; view.cx = view.cy = 0.5; $('#zoomBadge').classList.add('hide'); dirty = true; }
+
+  function target() { return useGL ? canvas : img; }
+  function rel(e) { const r = target().getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height, w: r.width, h: r.height }; }
+
+  // Fare/dokunma ile yakınlaştırma ve kaydırma
+  const ptrs = new Map(); let pinch0 = 0, z0 = 1;
+  stage.addEventListener('wheel', e => {
+    e.preventDefault();
+    const p = rel(e);
+    setZoom(view.z * Math.exp(-e.deltaY * 0.0015), Math.min(Math.max(p.x, 0), 1), Math.min(Math.max(p.y, 0), 1));
+  }, { passive: false });
+  stage.addEventListener('pointerdown', e => {
+    stage.setPointerCapture(e.pointerId);
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); z0 = view.z; }
+    stage.classList.add('dragging');
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!ptrs.has(e.pointerId)) return;
+    const prev = ptrs.get(e.pointerId);
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch0 > 0) { const p = rel({ clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 }); setZoom(z0 * d / pinch0, p.x, p.y); }
+    } else if (view.z > 1.001) {
+      const r = target().getBoundingClientRect(), s = 1 / view.z;
+      view.cx -= (e.clientX - prev.x) / r.width * s;
+      view.cy -= (e.clientY - prev.y) / r.height * s;
+      visibleRect(); dirty = true;
+    }
+  });
+  const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = 0; if (!ptrs.size) stage.classList.remove('dragging'); };
+  stage.addEventListener('pointerup', up);
+  stage.addEventListener('pointercancel', up);
+  stage.addEventListener('dblclick', reset);
+  document.addEventListener('keydown', e => {
+    if (/INPUT|SELECT|TEXTAREA/.test((document.activeElement || {}).tagName || '') || $('#panel').classList.contains('hide')) return;
+    if (e.key === '+' || e.key === '=') setZoom(view.z * 1.25, 0.5, 0.5);
+    else if (e.key === '-') setZoom(view.z / 1.25, 0.5, 0.5);
+    else if (e.key === '0') reset();
+    else if (e.key === 'f' || e.key === 'F') toggleFs();
+  });
+  function toggleFs() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (stage.requestFullscreen) stage.requestFullscreen().catch(() => {});
+  }
+  $('#fsBtn').onclick = toggleFs;
+  $('#resetViewBtn').onclick = reset;
+  window.addEventListener('resize', () => { dirty = true; });
+  document.addEventListener('fullscreenchange', () => { dirty = true; });
+
+  // İyileştirme kontrolleri
+  const ctl = {
+    sharp: v => v, shadow: v => v, bright: v => (v > 0 ? '+' : '') + v, contrast: v => v + '%', sat: v => v + '%'
+  };
+  function syncCtl() { for (const k in ctl) { $('#' + k).value = enh[k]; $('#' + k + 'Lbl').textContent = ctl[k](enh[k]); } setMode(); }
+  for (const k in ctl) {
+    $('#' + k).addEventListener('input', e => { enh[k] = +e.target.value; $('#' + k + 'Lbl').textContent = ctl[k](enh[k]); store.set('enh', enh); dirty = true; setMode(); });
+  }
+  function preset(p) { Object.assign(enh, p); store.set('enh', enh); syncCtl(); dirty = true; }
+  $('#enhPreset').onclick = () => preset({ sharp: 45, shadow: 0, bright: 0, contrast: 108, sat: 105 });
+  $('#enhNight').onclick = () => preset({ sharp: 25, shadow: 60, bright: 8, contrast: 112, sat: 85 });
+  $('#enhReset').onclick = () => preset({ sharp: 0, shadow: 0, bright: 0, contrast: 100, sat: 100 });
+
+  return {
+    start() {
+      if (running) return;
+      running = true;
+      if (!gl && !prog) useGL = initGL(); else useGL = !!gl;
+      canvas.classList.toggle('hide', !useGL);
+      img.classList.toggle('hide', useGL);
+      if (!useGL) applyCss();
+      syncCtl();
+      dirty = true;
+      raf = requestAnimationFrame(loop);
+    },
+    stop() { running = false; cancelAnimationFrame(raf); },
+    get mode() { return useGL ? 'webgl' : 'css'; },
+    get size() { return { canvas: [canvas.width, canvas.height], tex: [texW, texH] }; },
+    zoomTo: setZoom
+  };
+})();
+
+// ---------------- Diğer kameralar ----------------
+const Cams = (() => {
+  let list = store.get('kameralar', []);
+  let timer = null;
+  const box = $('#cams');
+  const defPort = () => location.protocol === 'https:' ? 8443 : 8080;
+  const base = c => location.protocol + '//' + c.host + ':' + c.port;
+  const save = () => store.set('kameralar', list.map(({ id, host, port, t, name }) => ({ id, host, port, t, name })));
+
+  function parseHost(s) {
+    s = s.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+    const m = s.match(/^(\d{1,3}(?:\.\d{1,3}){3})(?::(\d{2,5}))?$/);
+    if (!m) return null;
+    if (m[1].split('.').some(n => +n > 255)) return null;
+    return { host: m[1], port: m[2] ? +m[2] : defPort() };
+  }
+
+  function msg(t, cls) { const m = $('#addMsg'); m.innerHTML = t; m.className = cls || 'mut'; }
+
+  async function login(host, port, pin, existing) {
+    const c = existing || { id: Math.random().toString(36).slice(2), host, port, name: host };
+    const b = base(c);
+    let j;
+    try {
+      const r = await fetch(b + '/auth', { method: 'POST', cache: 'no-store', body: JSON.stringify({ pin, dev: deviceId(), name: deviceName() + ' (çoklu kamera paneli)' }) });
+      j = await r.json();
+    } catch (e) {
+      if (location.protocol === 'https:') msg('Kameraya ulaşılamadı. Kamera açık mı? Şifreli bağlantı için önce <a href="' + esc(b) + '/" target="_blank" rel="noopener">' + esc(b) + '</a> adresini yeni sekmede açıp "Gelişmiş > Devam et" ile sertifikasını kabul et, sonra tekrar Ekle\'ye bas.', 'ev-bad');
+      else msg('Kameraya ulaşılamadı. Adres doğru mu, kamera açık mı, aynı Wi-Fi\'de mi?', 'ev-bad');
+      return null;
+    }
+    if (j.httpsOnly) { msg('O kamera yalnızca şifreli bağlantı kabul ediyor. Bu paneli https adresinden aç ve tekrar dene.', 'ev-bad'); return null; }
+    if (j.locked) { msg('Çok fazla yanlış deneme; ' + j.saniye + ' sn bekle.', 'ev-bad'); return null; }
+    if (j.pending) {
+      msg('<span class="spin"></span> <b>' + esc(host) + '</b> telefonunda onay bekleniyor: bildirimdeki "İzin ver"e bas, uygulama PIN\'ini gir.', 'ev-warn');
+      const end = Date.now() + (j.saniye || 180) * 1000;
+      while (Date.now() < end) {
+        await sleep(2000);
+        let w;
+        try { w = await (await fetch(b + '/auth/wait?req=' + encodeURIComponent(j.req), { cache: 'no-store' })).json(); } catch (e) { continue; }
+        if (w.state === 'pending') continue;
+        if (w.state === 'approved' && w.t) { j = w; break; }
+        msg(w.state === 'denied' ? 'O kameranın telefonunda reddedildi.' : 'Onay süresi doldu, tekrar dene.', 'ev-bad');
+        return null;
+      }
+      if (!j.t) { msg('Onay süresi doldu, tekrar dene.', 'ev-bad'); return null; }
+    } else if (!j.ok) { msg(j.msg ? esc(j.msg) : 'Yanlış PIN. Kalan deneme: ' + (j.kalan ?? '?'), 'ev-bad'); return null; }
+    c.t = j.t;
+    return c;
+  }
+
+  $('#addCamForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const p = parseHost($('#addHost').value);
+    if (!p) { msg('Geçerli bir IP adresi yaz (örn. 192.168.1.35).', 'ev-bad'); return; }
+    if (p.host === location.hostname && p.port === +(location.port || defPort())) { msg('Bu zaten şu an izlediğin kamera.', 'ev-bad'); return; }
+    const pin = $('#addPin').value.trim();
+    if (!pin) { msg('O kameranın PIN\'ini yaz.', 'ev-bad'); return; }
+    $('#addCamBtn').disabled = true;
+    msg('Bağlanılıyor…');
+    try {
+      const c = await login(p.host, p.port, pin);
+      if (c) {
+        list = list.filter(x => !(x.host === c.host && x.port === c.port));
+        list.push(c); save(); draw();
+        $('#addHost').value = ''; $('#addPin').value = '';
+        msg('Eklendi: ' + esc(c.host), 'ev-ok');
+      }
+    } finally { $('#addCamBtn').disabled = false; }
+  });
+
+  function draw() {
+    box.innerHTML = '';
+    if (!list.length) { box.innerHTML = '<p class="mut">Henüz başka kamera eklenmedi.</p>'; return; }
+    for (const c of list) {
+      const el = document.createElement('div');
+      el.className = 'tile'; el.dataset.id = c.id;
+      el.innerHTML =
+        '<div class="img"><img alt="" draggable="false"><div class="stageMsg">bağlanıyor…</div></div>' +
+        '<div class="info"><span class="name"></span><span class="row">' +
+        '<span class="pill st">—</span><span class="pill mv hide">HAREKET</span>' +
+        '<button class="ghost small open">Aç</button><button class="danger small del">Kaldır</button></span></div>';
+      el.querySelector('.name').textContent = c.name || c.host;
+      const im = el.querySelector('img');
+      im.onload = () => el.querySelector('.stageMsg').classList.add('hide');
+      im.onerror = () => { const m = el.querySelector('.stageMsg'); m.textContent = 'görüntü yok'; m.classList.remove('hide'); };
+      if (c.t) im.src = base(c) + '/stream?t=' + encodeURIComponent(c.t) + '&_=' + Date.now();
+      el.querySelector('.open').onclick = () => window.open(base(c) + '/', '_blank', 'noopener');
+      el.querySelector('.del').onclick = () => {
+        if (!confirm((c.name || c.host) + ' listeden kaldırılsın mı?')) return;
+        el.querySelector('img').removeAttribute('src');
+        list = list.filter(x => x.id !== c.id); save(); draw();
+      };
+      box.appendChild(el);
+    }
+  }
+
+  async function poll() {
+    for (const c of list) {
+      const el = box.querySelector('[data-id="' + c.id + '"]');
+      if (!el) continue;
+      const stEl = el.querySelector('.st');
+      if (!c.t) { stEl.textContent = 'PIN gerekli'; stEl.className = 'pill bad st'; continue; }
+      try {
+        const r = await fetch(base(c) + '/status?t=' + encodeURIComponent(c.t), { cache: 'no-store' });
+        if (r.status === 401) {
+          c.t = null; save();
+          el.querySelector('img').removeAttribute('src');
+          stEl.textContent = 'oturum kapandı'; stEl.className = 'pill bad st';
+          const btn = el.querySelector('.open');
+          btn.textContent = 'Yeniden bağlan';
+          btn.onclick = async () => {
+            const pin = prompt((c.name || c.host) + ' için PIN:');
+            if (!pin) return;
+            const n = await login(c.host, c.port, pin, c);
+            if (n) { save(); draw(); }
+          };
+          continue;
+        }
+        const j = await r.json();
+        if (j.name && j.name !== c.name) { c.name = j.name; el.querySelector('.name').textContent = j.name; save(); }
+        stEl.textContent = j.camActive ? 'canlı' : 'uykuda'; stEl.className = 'pill st ' + (j.camActive ? 'ok' : 'warn');
+        el.querySelector('.mv').classList.toggle('hide', !j.motion);
+        if (j.motion) onMotion();
+      } catch (e) {
+        stEl.textContent = 'ulaşılamıyor'; stEl.className = 'pill bad st';
+      }
+    }
+  }
+
+  return {
+    start() { draw(); clearInterval(timer); timer = setInterval(poll, 3000); poll(); },
+    stop() { clearInterval(timer); box.querySelectorAll('img').forEach(i => i.removeAttribute('src')); }
+  };
+})();
+
+start();
 </script>
 </body>
 </html>
