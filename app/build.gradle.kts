@@ -37,6 +37,7 @@ dependencies {
     implementation("androidx.camera:camera-core:$camerax")
     implementation("androidx.camera:camera-camera2:$camerax")
     implementation("androidx.camera:camera-lifecycle:$camerax")
-    implementation("androidx.camera:camera-video:$camerax")
     implementation("androidx.lifecycle:lifecycle-service:2.8.4")
+    // QR kod üretimi (yalnızca saf Java çekirdeği, ~500 KB)
+    implementation("com.google.zxing:core:3.5.3")
 }

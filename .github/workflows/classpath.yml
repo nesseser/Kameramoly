@@ -12,6 +12,8 @@ on:
 jobs:
   export:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Kodu al
         uses: actions/checkout@v4
@@ -69,9 +71,11 @@ jobs:
           ./gradlew --no-daemon -I /tmp/cp.gradle :app:exportCp
           ls -la cp-out
 
-      - name: Paketi yükle
-        uses: actions/upload-artifact@v4
-        with:
-          name: derleme-sinif-yolu
-          path: cp-out
-          if-no-files-found: error
+      - name: Geçici dala gönder (derleme-yolu)
+        run: |
+          cd cp-out
+          git init -q
+          git checkout -q -b derleme-yolu
+          git add -A
+          git -c user.name=ci -c user.email=ci@localhost commit -q -m "derleme sınıf yolu"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" derleme-yolu
