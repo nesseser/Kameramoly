@@ -1,10 +1,12 @@
 package com.hunterr.guvenlikkamera
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
@@ -16,6 +18,8 @@ import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
 import java.io.BufferedReader
 import java.io.File
@@ -52,6 +56,10 @@ class CameraService : LifecycleService() {
     private val analysisExec = Executors.newSingleThreadExecutor()
     private val motion = MotionDetector()
     private var lastMotionMs = 0L
+
+    // Pil tasarrufu: pahalı JPEG sıkıştırma yalnızca biri canlı izlerken yapılır.
+    private val streamClients = java.util.concurrent.atomic.AtomicInteger(0)
+    @Volatile private var lastEncodeMs = 0L
 
     // --- Ayarlar (çalışırken panelden değişebilir) ---
     @Volatile private var jpegQuality = 70
@@ -128,24 +136,26 @@ class CameraService : LifecycleService() {
             this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        val stopPi = PendingIntent.getService(
+        val stopPi = PendingIntent.getBroadcast(
             this, 1, Intent(this, StopReceiver::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        val n: Notification = Notification.Builder(this, CHANNEL)
+        val n = NotificationCompat.Builder(this, CHANNEL)
             .setContentTitle("Güvenlik kamerası çalışıyor")
             .setContentText("http://${NetUtil.ip()}:$PORT")
             .setSmallIcon(android.R.drawable.ic_menu_camera)
             .setContentIntent(openPi)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Durdur", stopPi)
+            .addAction(0, "Durdur", stopPi)
             .setOngoing(true)
             .build()
 
-        if (Build.VERSION.SDK_INT >= 29) {
-            startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA)
-        } else {
-            startForeground(NOTIF_ID, n)
-        }
+        // Kamera izni yoksa camera-tipli ön plan servisi Android 14'te hata verir;
+        // o durumda tipsiz başlat (yine de çöker değil, düzgün çalışır).
+        val hasCam = checkSelfPermission(android.Manifest.permission.CAMERA) ==
+            PackageManager.PERMISSION_GRANTED
+        val type = if (Build.VERSION.SDK_INT >= 29 && hasCam)
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA else 0
+        ServiceCompat.startForeground(this, NOTIF_ID, n, type)
     }
 
     private fun acquireWake() {
@@ -182,25 +192,32 @@ class CameraService : LifecycleService() {
 
         analysis.setAnalyzer(analysisExec) { image ->
             try {
+                // Kimse izlemiyorsa hiçbir ağır işlem yapma — kare at, pil yeme.
+                val streaming = streamClients.get() > 0
+                if (!streaming) return@setAnalyzer
+
+                // İzlenirken ~10 fps ile sınırla (daha fazlası gereksiz pil/ısı).
+                val now = System.currentTimeMillis()
+                if (now - lastEncodeMs < 100) return@setAnalyzer
+                lastEncodeMs = now
+
                 val w = image.width
                 val h = image.height
                 val rot = image.imageInfo.rotationDegrees
 
                 // Hareket algılama (Y düzlemi üzerinden)
-                val y = image.planes[0]
+                val yb = image.planes[0]
                 val moved = motion.check(
-                    y.buffer, y.rowStride, y.pixelStride, w, h, sensitivity
+                    yb.buffer, yb.rowStride, yb.pixelStride, w, h, sensitivity
                 )
-                y.buffer.rewind()
+                if (moved) lastMotionMs = now
 
-                // JPEG üret
+                // JPEG üret (yalnızca izlenirken buraya gelinir)
                 val nv21 = ImageUtils.toNv21(image)
                 var jpeg = ImageUtils.nv21ToJpeg(nv21, w, h, jpegQuality)
                 jpeg = ImageUtils.rotateJpeg(jpeg, rot, jpegQuality)
                 latestJpeg = jpeg
                 if (rot % 180 == 0) { frameW = w; frameH = h } else { frameW = h; frameH = w }
-
-                if (moved) lastMotionMs = System.currentTimeMillis()
             } catch (t: Throwable) {
                 CrashLog.record(this, t)
             } finally {
@@ -378,20 +395,25 @@ class CameraService : LifecycleService() {
             "Connection: close\r\n" +
             "Content-Type: multipart/x-mixed-replace; boundary=$boundary\r\n\r\n")
         out.write(header.toByteArray())
+        streamClients.incrementAndGet()  // kodlayıcıya "biri izliyor" de
+        var lastSent: ByteArray? = null
         try {
             while (!stopping.get()) {
                 val j = latestJpeg
-                if (j != null) {
+                if (j != null && j !== lastSent) {
+                    lastSent = j
                     val part = "--$boundary\r\nContent-Type: image/jpeg\r\nContent-Length: ${j.size}\r\n\r\n"
                     out.write(part.toByteArray())
                     out.write(j)
                     out.write("\r\n".toByteArray())
                     out.flush()
                 }
-                Thread.sleep(100) // ~10 fps
+                Thread.sleep(80)
             }
         } catch (_: Exception) {
             // istemci kapandı
+        } finally {
+            streamClients.decrementAndGet()
         }
     }
 
@@ -467,12 +489,9 @@ class CameraService : LifecycleService() {
     }
 }
 
-/** Bildirimdeki "Durdur" düğmesi için küçük servis. */
-class StopReceiver : android.app.Service() {
-    override fun onBind(intent: Intent?): IBinder? = null
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        stopService(Intent(this, CameraService::class.java))
-        stopSelf()
-        return START_NOT_STICKY
+/** Bildirimdeki "Durdur" düğmesi için yayın alıcısı. */
+class StopReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent?) {
+        context.stopService(Intent(context, CameraService::class.java))
     }
 }

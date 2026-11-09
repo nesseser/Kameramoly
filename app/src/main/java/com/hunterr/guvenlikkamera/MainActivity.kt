@@ -80,8 +80,15 @@ class MainActivity : Activity() {
                 Sonra ekranı kilitleyebilir veya uygulamadan çıkabilirsin. Kamera arka planda çalışmaya devam eder.
                 Uygulamayı son uygulamalar listesinden kaydırıp kapatsan bile servis çalışır. Durdurmak için bildirimdeki "Durdur"a bas.
 
+                Pil tasarrufu: kimse izlemezken kamera neredeyse hiç işlem yapmaz, az şarj harcar. Biri panele bağlanınca görüntü akmaya başlar.
+
+                ÖNEMLİ (Xiaomi/Redmi/POCO): Uygulamanın kendi kendine kapanmaması için:
+                • Ayarlar > Uygulamalar > Güvenlik Kamerası > "Otomatik başlatma"yı AÇ.
+                • Aynı yerde "Pil tasarrufu"nu "Kısıtlama yok" yap.
+                • Son uygulamalar ekranında uygulamayı aşağı çekip kilit simgesine bas (kilitli uygulama temizlenmez).
+
                 Bildirim çubuğundaki kamera bildirimi Android tarafından zorunludur, gizlenemez.
-                Telefonu şarja takılı bırak.
+                Uzun kullanımda telefonu şarja takılı bırak.
             """.trimIndent()
         })
 
@@ -112,21 +119,29 @@ class MainActivity : Activity() {
     }
 
     private fun startCam() {
-        val need = mutableListOf<String>()
+        // Sadece KAMERA zorunlu. Bildirim izni (POST_NOTIFICATIONS) birlikte istenir
+        // ama servisi engellemez — reddedilse bile kamera çalışır, sadece bildirim gizli olur.
         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            need += Manifest.permission.CAMERA
-        }
-        if (Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            need += Manifest.permission.POST_NOTIFICATIONS
-        }
-        if (need.isNotEmpty()) {
-            requestPermissions(need.toTypedArray(), 1)
+            val perms = if (Build.VERSION.SDK_INT >= 33)
+                arrayOf(Manifest.permission.CAMERA, Manifest.permission.POST_NOTIFICATIONS)
+            else
+                arrayOf(Manifest.permission.CAMERA)
+            requestPermissions(perms, 1)
             return
         }
-        ContextCompat.startForegroundService(this, Intent(this, CameraService::class.java))
+        try {
+            ContextCompat.startForegroundService(this, Intent(this, CameraService::class.java))
+        } catch (t: Throwable) {
+            CrashLog.record(this, t)
+            Toast.makeText(this, "Servis başlatılamadı, 'Son çökmeyi göster'e bak", Toast.LENGTH_LONG).show()
+        }
         handler.postDelayed({ refresh() }, 500)
+
+        // Uzun süre çalışabilmesi için pil optimizasyonundan muaf tut (ilk seferde sorar).
+        val pm = getSystemService(PowerManager::class.java)
+        if (pm != null && !pm.isIgnoringBatteryOptimizations(packageName)) {
+            handler.postDelayed({ askBatteryExemption() }, 800)
+        }
     }
 
     private fun stopCam() {
@@ -136,6 +151,7 @@ class MainActivity : Activity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != 1) return
         if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startCam()
         } else {
