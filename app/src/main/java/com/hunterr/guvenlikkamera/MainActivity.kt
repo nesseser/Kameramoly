@@ -34,6 +34,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        CrashLog.install(this)
         Prefs.ensurePin(this)
 
         val pad = dp(20)
@@ -62,6 +63,11 @@ class MainActivity : Activity() {
         root.addView(Button(this).apply {
             text = "Pil optimizasyonunu kapat"
             setOnClickListener { askBatteryExemption() }
+        })
+
+        root.addView(Button(this).apply {
+            text = "Son çökmeyi göster"
+            setOnClickListener { showCrashLog() }
         })
 
         root.addView(label(14f, "#8B949E").apply {
@@ -157,6 +163,31 @@ class MainActivity : Activity() {
                 }
             }
             .setNegativeButton("Vazgeç", null)
+            .show()
+    }
+
+    private fun showCrashLog() {
+        val log = CrashLog.read(this)
+        val body = if (log.isNullOrBlank()) "Kayıtlı bir çökme yok." else log
+        val view = android.widget.ScrollView(this).apply {
+            val tv = TextView(this@MainActivity).apply {
+                text = body
+                setTextIsSelectable(true)
+                setPadding(dp(16), dp(16), dp(16), dp(16))
+                textSize = 13f
+            }
+            addView(tv)
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Son çökme kaydı")
+            .setView(view)
+            .setPositiveButton("Kopyala") { _, _ ->
+                val cm = getSystemService(android.content.ClipboardManager::class.java)
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("crash", body))
+                Toast.makeText(this, "Kopyalandı", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Kapat", null)
+            .setNeutralButton("Temizle") { _, _ -> CrashLog.clear(this) }
             .show()
     }
 

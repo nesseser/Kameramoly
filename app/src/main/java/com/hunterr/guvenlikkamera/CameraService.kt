@@ -82,10 +82,31 @@ class CameraService : LifecycleService() {
         if (running) return START_STICKY
         running = true
 
-        startForegroundNotif()
-        acquireWake()
-        startCamera()
-        startServer()
+        try {
+            startForegroundNotif()
+        } catch (t: Throwable) {
+            // Bildirim/ön plan servisi başlatılamadıysa çökmek yerine hatayı kaydedip
+            // düzgünce dur — "Son çökmeyi göster" ile görülebilsin.
+            CrashLog.record(this, t)
+            running = false
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        try {
+            acquireWake()
+        } catch (t: Throwable) {
+            CrashLog.record(this, t)
+        }
+        try {
+            startCamera()
+        } catch (t: Throwable) {
+            CrashLog.record(this, t)
+        }
+        try {
+            startServer()
+        } catch (t: Throwable) {
+            CrashLog.record(this, t)
+        }
         return START_STICKY
     }
 
@@ -143,7 +164,8 @@ class CameraService : LifecycleService() {
             try {
                 provider = future.get()
                 bindCamera()
-            } catch (_: Exception) {
+            } catch (t: Throwable) {
+                CrashLog.record(this, t)
             }
         }, androidx.core.content.ContextCompat.getMainExecutor(this))
     }
@@ -179,7 +201,8 @@ class CameraService : LifecycleService() {
                 if (rot % 180 == 0) { frameW = w; frameH = h } else { frameW = h; frameH = w }
 
                 if (moved) lastMotionMs = System.currentTimeMillis()
-            } catch (_: Exception) {
+            } catch (t: Throwable) {
+                CrashLog.record(this, t)
             } finally {
                 image.close()
             }
@@ -191,7 +214,8 @@ class CameraService : LifecycleService() {
         try {
             camera = p.bindToLifecycle(this, selector, analysis)
             applyTorch()
-        } catch (_: Exception) {
+        } catch (t: Throwable) {
+            CrashLog.record(this, t)
         }
     }
 

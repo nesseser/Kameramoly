@@ -53,6 +53,44 @@ object Prefs {
     }
 }
 
+/**
+ * Uygulama her nerede çökerse çöksün, tam hata metnini SharedPreferences'a yazar.
+ * MainActivity'deki "Son çökmeyi göster" düğmesi bunu okuyup ekranda gösterir —
+ * böylece USB/logcat olmadan da hatayı görüp paylaşabiliriz.
+ */
+object CrashLog {
+    private const val PREFS = "crash_log"
+    private const val KEY = "last"
+
+    fun install(c: Context) {
+        val appCtx = c.applicationContext
+        val prev = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            record(appCtx, throwable, thread.name)
+            prev?.uncaughtException(thread, throwable)
+        }
+    }
+
+    /** Yakalanmış (uygulamayı çökertmeyen) hataları da aynı yere kaydetmek için. */
+    fun record(c: Context, throwable: Throwable, threadName: String = Thread.currentThread().name) {
+        try {
+            val sw = java.io.StringWriter()
+            throwable.printStackTrace(java.io.PrintWriter(sw))
+            val text = "Zaman: ${stamp()}\nThread: $threadName\n\n$sw"
+            c.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit().putString(KEY, text).commit()
+        } catch (_: Throwable) {
+        }
+    }
+
+    fun read(c: Context): String? =
+        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null)
+
+    fun clear(c: Context) {
+        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY).apply()
+    }
+}
+
 object NetUtil {
     /** Telefonun Wi-Fi ağındaki IP adresi (önce wlan arayüzü). */
     fun ip(): String {
