@@ -1,0 +1,35 @@
+name: APK derle
+
+# Hem elle (Actions sekmesinden "Run workflow") hem de her push'ta çalışır
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: JDK 17 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK hazırla
+        uses: android-actions/setup-android@v3
+
+      - name: gradlew'e çalışma izni
+        run: chmod +x ./gradlew
+
+      - name: Debug APK derle
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: APK'yı yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: GuvenlikKamera-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

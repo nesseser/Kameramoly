@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Güvenlik Kamerası</title>
+<style>
+  :root { --bg:#0d1117; --card:#161b22; --line:#30363d; --txt:#e6edf3; --mut:#8b949e; --acc:#2f81f7; --ok:#3fb950; --warn:#d29922; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap { max-width:900px; margin:0 auto; padding:16px; }
+  h1 { font-size:20px; margin:8px 0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+  button { background:var(--acc); color:#fff; border:0; border-radius:8px; padding:10px 14px; font-size:15px; cursor:pointer; }
+  button.ghost { background:transparent; border:1px solid var(--line); color:var(--txt); }
+  button.warn { background:var(--warn); color:#000; }
+  input { background:#0d1117; border:1px solid var(--line); color:var(--txt); border-radius:8px; padding:10px; font-size:16px; width:100%; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .row > * { flex:0 0 auto; }
+  label { font-size:14px; color:var(--mut); }
+  #view { width:100%; border-radius:10px; background:#000; display:block; }
+  .pill { font-size:12px; padding:3px 9px; border-radius:20px; border:1px solid var(--line); color:var(--mut); }
+  .pill.on { color:var(--ok); border-color:var(--ok); }
+  .pill.mv { color:var(--warn); border-color:var(--warn); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; }
+  .grid a { display:block; }
+  .grid img { width:100%; border-radius:8px; border:1px solid var(--line); }
+  .hide { display:none; }
+  .mut { color:var(--mut); font-size:13px; }
+  .slider { width:200px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Giriş -->
+  <div id="login" class="card">
+    <h1>Güvenlik Kamerası</h1>
+    <p class="mut">Devam etmek için PIN gir.</p>
+    <div class="row">
+      <input id="pin" type="password" inputmode="numeric" placeholder="PIN" style="max-width:160px" autocomplete="off">
+      <button onclick="login()">Giriş</button>
+    </div>
+    <p id="loginMsg" class="mut"></p>
+  </div>
+
+  <!-- Panel -->
+  <div id="panel" class="hide">
+    <h1>Canlı Görüntü
+      <span id="pOn" class="pill">bağlanıyor…</span>
+      <span id="pMv" class="pill">hareket yok</span>
+    </h1>
+
+    <div class="card">
+      <img id="view" alt="canlı görüntü">
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="row">
+          <label>Hareket hassasiyeti</label>
+          <input class="slider" id="sens" type="range" min="1" max="100" oninput="sensLbl.textContent=this.value" onchange="setConfig({sensitivity:+this.value})">
+          <span id="sensLbl" class="pill">60</span>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button id="bCam" class="ghost" onclick="toggleCam()">Kamera: arka</button>
+        <button id="bTorch" class="ghost" onclick="toggleTorch()">Fener: kapalı</button>
+      </div>
+      <p class="mut">Bu uygulama görüntü kaydetmez; yalnızca canlı izleme sağlar.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let st = {};
+
+async function login() {
+  const pin = $('#pin').value.trim();
+  $('#loginMsg').textContent = 'Kontrol ediliyor…';
+  try {
+    const r = await fetch('/auth', { method:'POST', body: JSON.stringify({pin}) });
+    const j = await r.json();
+    if (j.ok) { openPanel(); }
+    else if (j.locked) { $('#loginMsg').textContent = 'Çok fazla yanlış deneme. ' + j.saniye + ' sn bekle.'; }
+    else { $('#loginMsg').textContent = 'Yanlış PIN. Kalan deneme: ' + (j.kalan ?? '?'); }
+  } catch(e) { $('#loginMsg').textContent = 'Bağlantı hatası.'; }
+}
+
+$('#pin').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+function openPanel() {
+  $('#login').classList.add('hide');
+  $('#panel').classList.remove('hide');
+  $('#view').src = '/stream?t=' + Date.now(); // cookie ile yetkili
+  refresh();
+  setInterval(refresh, 2000);
+}
+
+async function refresh() {
+  try {
+    const j = await (await fetch('/status')).json();
+    st = j;
+    $('#pOn').textContent = 'AÇIK ' + j.w + 'x' + j.h;
+    $('#pOn').className = 'pill on';
+    $('#pMv').textContent = j.motion ? 'HAREKET' : 'hareket yok';
+    $('#pMv').className = 'pill ' + (j.motion ? 'mv' : '');
+    $('#sens').value = j.sensitivity; $('#sensLbl').textContent = j.sensitivity;
+    $('#bCam').textContent = 'Kamera: ' + (j.front ? 'ön' : 'arka');
+    $('#bTorch').textContent = 'Fener: ' + (j.torch ? 'açık' : 'kapalı');
+  } catch(e) {
+    $('#pOn').textContent = 'bağlantı yok'; $('#pOn').className = 'pill';
+  }
+}
+
+async function setConfig(obj) {
+  await fetch('/config', { method:'POST', body: JSON.stringify(obj) });
+  refresh();
+}
+function toggleCam() { setConfig({front: !st.front}); }
+function toggleTorch() { setConfig({torch: !st.torch}); }
+</script>
+</body>
+</html>
