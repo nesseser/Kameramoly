@@ -1,0 +1,77 @@
+name: Derleme sınıf yolunu dışa aktar
+
+# Geliştirme yardımcısı: uygulamanın derlendiği tüm kütüphane jar'larını (android.jar,
+# CameraX, androidx vb.) tek bir paket olarak çıkarır. Kodu CI'a göndermeden önce
+# yerelde birebir aynı sınıf yoluyla derleyip kontrol etmek için kullanılır.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/classpath.yml'
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: JDK 17 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK hazırla
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          set -e
+          SDK_ROOT="$ANDROID_SDK_ROOT"
+          mkdir -p "$SDK_ROOT/cmdline-tools"
+          cd /tmp
+          curl -fsSL -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdline-tools.zip -d cmdline-tools-extracted
+          mv cmdline-tools-extracted/cmdline-tools "$SDK_ROOT/cmdline-tools/latest"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Sınıf yolunu topla
+        run: |
+          chmod +x ./gradlew
+          cat > /tmp/cp.gradle <<'EOF'
+          gradle.projectsEvaluated {
+              def app = gradle.rootProject.project(':app')
+              def out = new File(gradle.rootProject.rootDir, 'cp-out')
+              app.tasks.register('exportCp') {
+                  doLast {
+                      out.mkdirs()
+                      int i = 0
+                      app.android.applicationVariants.matching { it.name == 'debug' }.each { v ->
+                          v.javaCompileProvider.get().classpath.files.each { f ->
+                              if (f.isFile() && f.name.endsWith('.jar')) {
+                                  java.nio.file.Files.copy(f.toPath(), new File(out, String.format('%03d_%s', i++, f.name)).toPath())
+                              }
+                          }
+                      }
+                      app.android.bootClasspath.each { f ->
+                          if (f.isFile()) {
+                              java.nio.file.Files.copy(f.toPath(), new File(out, 'boot_' + f.name).toPath())
+                          }
+                      }
+                      println "Toplam: " + out.listFiles().length + " dosya"
+                  }
+              }
+          }
+          EOF
+          ./gradlew --no-daemon -I /tmp/cp.gradle :app:exportCp
+          ls -la cp-out
+
+      - name: Paketi yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: derleme-sinif-yolu
+          path: cp-out
+          if-no-files-found: error
